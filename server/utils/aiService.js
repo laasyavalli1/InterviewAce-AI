@@ -12,7 +12,7 @@ const evaluateAnswer = async (
 ) => {
 
     const prompt = `
-You are an expert technical interviewer.
+You are an experienced technical interviewer.
 
 Question:
 ${question}
@@ -23,15 +23,22 @@ ${answer}
 Expected Key Points:
 ${answerPoints.join(", ")}
 
-Evaluate the candidate's answer.
+Evaluate the answer using ONLY these rules:
 
-Return ONLY a raw JSON object.
+SCORING:
+- Score must be an INTEGER from 0 to 10.
+- Never return a score above 10.
+- Never return decimals.
 
-Do NOT wrap the response inside \`\`\`json.
-Do NOT write explanations.
-Do NOT write any extra text.
+Rubric:
+10 = Covers all key points accurately.
+8-9 = Covers most key points with minor omissions.
+6-7 = Covers about half the key points.
+3-5 = Covers only a few important points.
+1-2 = Mostly incorrect.
+0 = Completely wrong or empty answer.
 
-Return exactly in this format:
+Return ONLY valid JSON.
 
 {
     "score": 0,
@@ -39,6 +46,10 @@ Return exactly in this format:
     "missingPoints": [],
     "improvedAnswer": ""
 }
+
+Do not return markdown.
+Do not return explanations.
+Do not return code fences.
 `;
 
     const completion = await client.chat.completions.create({
@@ -52,27 +63,69 @@ Return exactly in this format:
             }
         ],
 
-        temperature: 0.3
+        temperature: 0.2
 
     });
 
     const response =
         completion.choices[0].message.content;
 
-    console.log("RAW AI RESPONSE:");
+    console.log("\n===== RAW AI RESPONSE =====");
     console.log(response);
 
-    // Remove markdown code fences if the model still returns them
     const cleanedResponse = response
         .replace(/```json/g, "")
         .replace(/```/g, "")
         .trim();
 
-    console.log("\n===== AI RESPONSE =====\n");
-    console.log(cleanedResponse);
-    console.log("\n=======================\n");
+    try {
 
-    return JSON.parse(cleanedResponse);
+        const parsed = JSON.parse(cleanedResponse);
+
+        parsed.score = Number(parsed.score);
+
+        if (isNaN(parsed.score))
+            parsed.score = 0;
+
+        parsed.score = Math.max(
+            0,
+            Math.min(10, Math.round(parsed.score))
+        );
+
+        parsed.strengths =
+            Array.isArray(parsed.strengths)
+                ? parsed.strengths.slice(0, 3)
+                : [];
+
+        parsed.missingPoints =
+            Array.isArray(parsed.missingPoints)
+                ? parsed.missingPoints.slice(0, 3)
+                : [];
+
+        parsed.improvedAnswer =
+            parsed.improvedAnswer || "";
+
+        return parsed;
+
+    }
+
+    catch (err) {
+
+        console.log("Invalid AI JSON");
+
+        return {
+
+            score: 0,
+
+            strengths: [],
+
+            missingPoints: answerPoints,
+
+            improvedAnswer: "Unable to evaluate answer."
+
+        };
+
+    }
 
 };
 
