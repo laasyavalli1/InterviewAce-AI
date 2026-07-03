@@ -40,13 +40,17 @@ exports.startInterview = async (req, res) => {
     }
 };
 exports.submitInterview = async (req, res) => {
-
+    console.log("submitInterview called");
+    console.log(req.body);
     try {
 
         const { interviewId, answers } = req.body;
 
         let totalScore = 0;
 
+        await Response.deleteMany({
+            interviewId
+        });
         for (const item of answers) {
 
             const question = await Question.findById(
@@ -122,10 +126,13 @@ exports.submitInterview = async (req, res) => {
 
     catch (error) {
 
+        console.log("========= SUBMIT INTERVIEW ERROR =========");
+        console.error(error);
+        console.error(error.stack);
+        console.log("=========================================");
+
         res.status(500).json({
-
             message: error.message
-
         });
 
     }

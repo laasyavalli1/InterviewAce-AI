@@ -33,7 +33,7 @@ const AIEvaluation = () => {
     }, []);
 
     const evaluateInterview = async () => {
-
+        console.log("Location State:", location.state);
         try {
 
             await api.post(

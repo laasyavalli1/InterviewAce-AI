@@ -59,6 +59,9 @@ Return exactly in this format:
     const response =
         completion.choices[0].message.content;
 
+    console.log("RAW AI RESPONSE:");
+    console.log(response);
+
     // Remove markdown code fences if the model still returns them
     const cleanedResponse = response
         .replace(/```json/g, "")
